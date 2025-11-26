@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Scoreboard Tennis</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="scoreboard">
+        <h1>Match de Tennis</h1>
+
+        <div class="players">
+            <span id="player1Name">Joueur A</span>
+            <span id="player2Name">Joueur B</span>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Set 1</th>
+                    <th>Set 2</th>
+                    <th>Set 3</th>
+                    <th class="current-game">Jeu</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr id="player1Row">
+                    <td class="name">Joueur A</td>
+                    <td id="set1-A">0</td>
+                    <td id="set2-A">0</td>
+                    <td id="set3-A">0</td>
+                    <td id="game-A" class="current-game">0</td>
+                </tr>
+                <tr id="player2Row">
+                    <td class="name">Joueur B</td>
+                    <td id="set1-B">0</td>
+                    <td id="set2-B">0</td>
+                    <td id="set3-B">0</td>
+                    <td id="game-B" class="current-game">0</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="buttons">
+            <button onclick="pointWon(1)">Point pour Joueur A</button>
+            <button onclick="pointWon(2)">Point pour Joueur B</button>
+        </div>
+
+        <p id="matchStatus"></p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
