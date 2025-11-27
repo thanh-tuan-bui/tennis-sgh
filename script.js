@@ -15,17 +15,16 @@ let score = {
 // Fonction pour lire le score depuis Google Sheets (doGet via GAS)
 async function fetchScore() {
     try {
-        const response = await fetch(GAS_API_URL);
+        // GAS_API_URL doit être défini dans index.html
+        const response = await fetch(GAS_API_URL); 
         const data = await response.json();
         
-        // Mettre à jour la variable globale et l'affichage
         score = data; 
         updateDisplay();
     } catch (error) {
         console.error("Erreur de lecture du score (Sheets API). Chargement du score par défaut.", error);
-        // Utilise le score par défaut s'il y a une erreur de lecture
         updateDisplay();
-        saveScore(); // Et on force la sauvegarde du défaut (si possible)
+        saveScore(); // Tente de sauvegarder l'initialisation par défaut
     }
 }
 
@@ -34,14 +33,11 @@ function saveScore() {
     fetch(GAS_API_URL, {
         method: 'POST',
         headers: {
-            'Content-Type': 'text/plain', 
+            'Content-Type': 'text/plain', // Obligatoire pour Apps Script
         },
         body: JSON.stringify(score) 
     })
     .catch(error => console.error("Erreur de sauvegarde du score (Sheets API):", error));
-    
-    // NOTE: Pour une vraie synchro en temps réel, vous pouvez décommenter la ligne
-    // 'setInterval(fetchScore, 3000);' à la fin du fichier.
 }
 
 // ===================================
@@ -49,11 +45,13 @@ function saveScore() {
 // ===================================
 
 function updateDisplay() {
+    // Mise à jour des Sets et Jeux
     for (let s = 1; s <= MAX_SETS; s++) {
         document.getElementById(`set${s}-A`).textContent = score.sets[s][0];
         document.getElementById(`set${s}-B`).textContent = score.sets[s][1];
     }
 
+    // Mise à jour du Jeu actuel
     let pA = score.points[0];
     let pB = score.points[1];
 
@@ -91,7 +89,7 @@ function pointWon(player) {
 
     // Mise à jour locale immédiate (pour l'utilisateur qui clique)
     updateDisplay(); 
-    // Sauvegarde en arrière-plan
+    // ÉCRITURE API : Sauvegarde le score dans Google Sheets !
     saveScore(); 
 }
 
@@ -148,6 +146,5 @@ function disableButtons() {
 // Appel initial : charger le score depuis Google Sheets au démarrage
 document.addEventListener('DOMContentLoaded', fetchScore);
 
-// Optionnel : Pour le temps réel (synchronisation des spectateurs)
-// Décommentez la ligne suivante pour rafraîchir le score toutes les 3 secondes pour les spectateurs :
-// setInterval(fetchScore, 3000);
+// Activation du temps réel (synchronisation des spectateurs)
+setInterval(fetchScore, 3000);
