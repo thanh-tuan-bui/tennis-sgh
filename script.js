@@ -1,12 +1,8 @@
-const POINT_NAMES = ["0", "15", "30", "40", "AD"]; 
 const MAX_SETS = 3; 
+// Les noms des points ne sont plus nécessaires, car le score vient directement en texte de Sheets.
 
-// Score sera chargé par fetchScore()
-let score = {
-    sets: [[0, 0], [0, 0], [0, 0], [0, 0]], 
-    points: [0, 0],
-    currentSet: 1
-};
+// Variable pour stocker le score lu depuis Sheets
+let score = {}; 
 
 // ===================================
 // FONCTIONS API GOOGLE SHEETS
@@ -15,136 +11,58 @@ let score = {
 // Fonction pour lire le score depuis Google Sheets (doGet via GAS)
 async function fetchScore() {
     try {
-        // GAS_API_URL doit être défini dans index.html
         const response = await fetch(GAS_API_URL); 
         const data = await response.json();
         
+        // Stocke les données lues (ex: data.setsGanésA, data.pointsA)
         score = data; 
         updateDisplay();
     } catch (error) {
-        console.error("Erreur de lecture du score (Sheets API). Chargement du score par défaut.", error);
-        updateDisplay();
-        saveScore(); // Tente de sauvegarder l'initialisation par défaut
+        console.error("Erreur de lecture du score (Sheets API). Vérifiez la console GAS.", error);
+        // Afficher un message d'erreur si la lecture échoue
+        document.getElementById('matchStatus').textContent = "Erreur de connexion au score. Rechargez la page.";
     }
 }
 
-// Fonction pour sauvegarder le score dans Google Sheets (doPost via GAS)
-function saveScore() {
-    fetch(GAS_API_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'text/plain', // Obligatoire pour Apps Script
-        },
-        body: JSON.stringify(score) 
-    })
-    .catch(error => console.error("Erreur de sauvegarde du score (Sheets API):", error));
-}
-
 // ===================================
-// LOGIQUE DE JEU
+// LOGIQUE D'AFFICHAGE
 // ===================================
 
 function updateDisplay() {
-    // Mise à jour des Sets et Jeux
-    for (let s = 1; s <= MAX_SETS; s++) {
-        document.getElementById(`set${s}-A`).textContent = score.sets[s][0];
-        document.getElementById(`set${s}-B`).textContent = score.sets[s][1];
-    }
+    // Mise à jour des Sets gagnés (dans l'en-tête, Sets[0])
+    // Note : Pour l'affichage des jeux, nous n'afficherons que le premier set pour la simplicité,
+    // car le format simple A1:F1 ne contient pas les scores de Set 2 et Set 3.
+    
+    // Si votre tableau ne contient que 3 colonnes de set dans l'HTML, nous mettons les sets gagnés en Set 1.
+    
+    // SETS GAGNÉS (Position 1)
+    document.getElementById(`set1-A`).textContent = score.setsGanésA || 0;
+    document.getElementById(`set1-B`).textContent = score.setsGanésB || 0;
+    
+    // JEUX SET 1 (Position 2)
+    document.getElementById(`set2-A`).textContent = score.jeuxSet1A || 0;
+    document.getElementById(`set2-B`).textContent = score.jeuxSet1B || 0;
+    
+    // JEUX SET 2/3 : Mettre 0 ou laisser vide si non géré par la feuille simple
+    document.getElementById(`set3-A`).textContent = 0;
+    document.getElementById(`set3-B`).textContent = 0;
 
-    // Mise à jour du Jeu actuel
-    let pA = score.points[0];
-    let pB = score.points[1];
 
-    let displayA = POINT_NAMES[pA];
-    let displayB = POINT_NAMES[pB];
-
-    if (pA >= 3 && pB >= 3) {
-        if (pA === pB) {
-            displayA = displayB = "Deuce";
-        } else if (pA > pB) {
-            displayA = "Avantage";
-            displayB = "40"; 
-        } else {
-            displayB = "Avantage";
-            displayA = "40"; 
-        }
-    }
-
-    document.getElementById('game-A').textContent = displayA;
-    document.getElementById('game-B').textContent = displayB;
-
-    checkMatchEnd();
-}
-
-function pointWon(player) {
-    const pIndex = player - 1; 
-    score.points[pIndex]++;
-
-    let pA = score.points[0];
-    let pB = score.points[1];
-
-    if ((pA >= 4 || pB >= 4) && Math.abs(pA - pB) >= 2) {
-        gameWon(player);
-    }
-
-    // Mise à jour locale immédiate (pour l'utilisateur qui clique)
-    updateDisplay(); 
-    // ÉCRITURE API : Sauvegarde le score dans Google Sheets !
-    saveScore(); 
-}
-
-function gameWon(player) {
-    const pIndex = player - 1;
-
-    score.sets[score.currentSet][pIndex]++;
-    score.points = [0, 0]; 
-
-    let gA = score.sets[score.currentSet][0];
-    let gB = score.sets[score.currentSet][1];
-
-    if ((gA >= 6 || gB >= 6) && (Math.abs(gA - gB) >= 2 || (gA === 7 && gB === 6) || (gB === 7 && gA === 6))) {
-        setWon(player);
+    // JEU ACTUEL (Position 4) : Les données viennent directement en texte/chiffre
+    document.getElementById('game-A').textContent = score.pointsA || "0";
+    document.getElementById('game-B').textContent = score.pointsB || "0";
+    
+    // Mettre à jour le statut pour afficher si le match est terminé (si vous l'entrez manuellement)
+    if (score.pointsA === "Fini" || score.pointsB === "Fini") {
+        document.getElementById('matchStatus').textContent = "Match terminé !";
+    } else {
+         document.getElementById('matchStatus').textContent = "";
     }
 }
 
-function setWon(player) {
-    const pIndex = player - 1;
 
-    score.sets[0][pIndex]++;
-
-    if (score.sets[0][0] < (MAX_SETS + 1) / 2 && score.sets[0][1] < (MAX_SETS + 1) / 2) {
-        score.currentSet++;
-        if (!score.sets[score.currentSet]) {
-            score.sets[score.currentSet] = [0, 0];
-        }
-    }
-}
-
-function checkMatchEnd() {
-    let setsA = score.sets[0][0];
-    let setsB = score.sets[0][1];
-    let setsToWin = Math.ceil(MAX_SETS / 2);
-
-    const playerA = document.getElementById('player1Name').textContent;
-    const playerB = document.getElementById('player2Name').textContent;
-
-    if (setsA >= setsToWin) {
-        document.getElementById('matchStatus').textContent = `Fini ! ${playerA} gagne le match ${setsA}-${setsB} !`;
-        disableButtons();
-    } else if (setsB >= setsToWin) {
-        document.getElementById('matchStatus').textContent = `Fini ! ${playerB} gagne le match ${setsA}-${setsB} !`;
-        disableButtons();
-    }
-}
-
-function disableButtons() {
-    document.querySelectorAll('.buttons button').forEach(button => {
-        button.disabled = true;
-    });
-}
-
-// Appel initial : charger le score depuis Google Sheets au démarrage
+// Démarrage : on charge le score immédiatement
 document.addEventListener('DOMContentLoaded', fetchScore);
 
-// Activation du temps réel (synchronisation des spectateurs)
+// Temps réel : on rafraîchit le score toutes les 3 secondes
 setInterval(fetchScore, 3000);
